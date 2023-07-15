@@ -112,17 +112,10 @@ The reason `docker` is used in the source code here, is to be able to build up a
 environment of the codebase, and do `unit/integration and load tests`.
 
 ```bash
-make build-container-image
+make build-container-image DOCKER_BUILD="buildx build --platform linux/amd64" CONTEXT=.
 ```
 
 ```bash
 make get-container-info-environment
 make run-container-tests type=unit
-```
-
-
-### Docker
-
-```bash
-make build-container-image DOCKER_BUILD="buildx build --platform linux/amd64" CONTEXT=.
 ```
