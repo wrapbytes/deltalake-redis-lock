@@ -1,0 +1,29 @@
+name: Pull Request
+
+on:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+jobs:
+  build_test_scan_and_push:
+    name: Lint, test & build image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Environment variables
+        id: vars
+        run: |
+          echo "::set-output name=tag::$(git rev-parse --short HEAD)"
+          echo "::set-output name=app::deiteo/kafka-client"
+
+      - uses: ./.github/actions/lint-test-build-scan
+        with:
+          app: ${{ steps.vars.outputs.app }}
+          tag: ${{ steps.vars.outputs.tag }}

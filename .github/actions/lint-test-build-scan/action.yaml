@@ -1,0 +1,41 @@
+name: 'Lint Dockerfile, Build Image, Test & Trivy Scan'
+description: 'Github action to Lint, Test & Build Image'
+inputs:
+  app:
+    required: true
+  tag:
+    required: true
+runs:
+  using: "composite"
+  steps:
+#    - name: Lint Dockerfile
+#      id: LintDockerfile
+#      uses: hadolint/hadolint-action@master
+#      with:
+#        dockerfile: "tools/docker/Dockerfile"
+
+    - name: Build image
+      run: make build-container-image APP=${{ inputs.app }} TAG=${{ inputs.tag }}
+      shell: sh
+
+    - name: Run linter
+      id: RunLinter
+      run: make run-container-linter APP=${{ inputs.app }} TAG=${{ inputs.tag }}
+      shell: sh
+
+    - name: Unit Tests & Coverage
+      id: UnitTestsAndCoverage
+      shell: sh
+      run: |
+        make run-container-tests APP=${{ inputs.app }} TAG=${{ inputs.tag }} type=unit
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      id: trivyScan
+      with:
+        image-ref: '${{ inputs.app }}:${{ inputs.tag }}'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
