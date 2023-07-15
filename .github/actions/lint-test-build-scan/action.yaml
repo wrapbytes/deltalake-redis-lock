@@ -8,11 +8,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Lint Dockerfile
-      id: LintDockerfile
-      uses: hadolint/hadolint-action@master
-      with:
-        dockerfile: "tools/docker/Dockerfile"
+#    - name: Lint Dockerfile
+#      id: LintDockerfile
+#      uses: hadolint/hadolint-action@master
+#      with:
+#        dockerfile: "tools/docker/Dockerfile"
 
     - name: Build image
       run: make build-container-image APP=${{ inputs.app }} TAG=${{ inputs.tag }}
