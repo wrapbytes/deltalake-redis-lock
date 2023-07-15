@@ -2,7 +2,6 @@
 
 ![example workflow](https://github.com/wrapbytes/deltalake-redis-lock/actions/workflows/merge.yaml/badge.svg)
 ![example workflow](https://github.com/wrapbytes/deltalake-redis-lock/actions/workflows/pr.yaml/badge.svg)
-![example workflow](https://github.com/wrapbytes/deltalake-redis-lock/actions/workflows/wily.yaml/badge.svg)
 
 A library creating an interface for a write lock for [delta-rs](https://pypi.org/project/deltalake/).
 
@@ -87,7 +86,7 @@ seq 2 | xargs -I{} -P 2 poetry run python run.py
 
 ### Requirement
 
-* ^python3.8
+* ^python3.4
 * poetry 1.1.13
 * make (GNU Make 3.81)
 
