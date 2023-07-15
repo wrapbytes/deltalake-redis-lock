@@ -1,50 +1,14 @@
-import string
-from random import choices
+import os
+from typing import Generator
+from unittest.mock import MagicMock, patch
 
-from redis import StrictRedis
+import pytest
+from redis.lock import Lock
 
-from src.operators.delta_lock import RedisLockingObjectStore
-from src.operators.delta_rs import DeltaRS
-
-
-def generate_random_string(length):
-    return ''.join(choices(string.ascii_lowercase, k=length))
+STRICT_REDIS_PATH = "src.deltalake_redis_lock"
 
 
-def write_data_no_store(df, table_name):
-    delta_rs = DeltaRS(
-        endpoint_url="http://localhost:30000"
-    )
-
-    delta_rs.write(
-        mode="append",
-        tier="integration",
-        table_name=table_name,
-        data=df,
-        overwrite_schema=True,
-    )
-
-
-def write_data_to_store(df, table_name):
-    redis_client = StrictRedis(
-        host="localhost",
-        port=32767,
-        db=0,
-    )
-
-    delta_rs = DeltaRS(
-        endpoint_url="http://localhost:30000"
-    )
-
-    store = RedisLockingObjectStore(
-        delta_rs=delta_rs,
-        redis_client=redis_client
-    )
-
-    store.write(
-        mode="append",
-        tier="integration",
-        table_name=table_name,
-        data=df,
-        overwrite_schema=True,
-    )
+@pytest.fixture(scope="function")
+def mock_lock() -> Generator[MagicMock, None, None]:
+    with patch(f"{STRICT_REDIS_PATH}.REDIS_LOCK", spec=Lock) as mock_lock:
+        yield mock_lock

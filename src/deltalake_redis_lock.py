@@ -1,70 +1,25 @@
-from typing import Union, Iterable, Optional, List, Literal, Mapping, Tuple, Any, Dict
-from deltalake import write_deltalake, DeltaTable
-from pathlib import Path
-import pyarrow as pa
-import pyarrow.fs as pa_fs
-from deltalake._internal import DeltaError
-from redis.exceptions import RedisError, LockError
-from pyarrow.lib import RecordBatchReader
-import pyarrow.dataset as ds
-from redis import StrictRedis
-
-from redis.lock import Lock
 import logging
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Tuple, Union
 
+import pandas as pd
+import pyarrow as pa
+import pyarrow.dataset as ds
+import pyarrow.fs as pa_fs
+from deltalake import DeltaTable, write_deltalake
+from deltalake._internal import DeltaError
+from pyarrow.lib import RecordBatchReader
+from redis.exceptions import LockError
+from redis.lock import Lock
 
-class RedisLockingObjectStore:
-    def __init__(self, redis_client: StrictRedis) -> None:
-        self.redis_client = redis_client
-
-    @staticmethod
-    def release_lock(acquired_lock: Lock) -> None:
-        logging.info("Releasing lock...")
-        acquired_lock.release()
-
-    def acquire_lock(self, lock_table_name: str, blocking: bool = True) -> Optional[Lock]:
-        lock_obj = Lock(redis=self.redis_client, name=lock_table_name)
-        lock_acquired = lock_obj.acquire(blocking=blocking)
-        logging.info(f"Trying to acquire lock, blocking: {blocking}")
-
-        if lock_acquired:
-            return lock_obj
-        else:
-            return None
-
-
-def _get_strict_redis(
-    host: str,
-    port: int,
-    db: int,
-):
-    return StrictRedis(
-        host=host,
-        port=port,
-        db=db,
-    )
-
-
-def get_store(
-    host: str,
-    port: int,
-    db: int,
-) -> RedisLockingObjectStore:
-    try:
-        redis_client = _get_strict_redis(host=host, port=port, db=db)
-        return RedisLockingObjectStore(
-            redis_client=redis_client
-        )
-    except RedisError as redis_error:
-        raise redis_error
+from src.global_lock import REDIS_LOCK
 
 
 def write_redis_lock_deltalake(
-    self,
     lock_table_name: str,
     table_or_uri: Union[str, Path, DeltaTable],
     data: Union[
-        "pd.DataFrame",
+        pd.DataFrame,
         pa.Table,
         pa.RecordBatch,
         Iterable[pa.RecordBatch],
@@ -88,9 +43,12 @@ def write_redis_lock_deltalake(
     partition_filters: Optional[List[Tuple[str, str, Any]]] = None,
 ) -> None:
     try:
-        acquired_lock = self.acquire_lock(lock_table_name=lock_table_name)
+        acquired_lock: Optional[Lock] = REDIS_LOCK.acquire_delta_lock(
+            lock_table_name=lock_table_name
+        )
+        logging.info(f"Acquired Redis Lock...")
 
-        if acquired_lock:
+        if isinstance(acquired_lock, Lock):
             try:
                 logging.info("Lock acquired. Writing to Delta...")
                 return write_deltalake(
@@ -114,7 +72,7 @@ def write_redis_lock_deltalake(
                     partition_filters=partition_filters,
                 )
             finally:
-                self.release_lock(acquired_lock)
+                REDIS_LOCK.release_delta_lock(acquired_lock=acquired_lock)
         else:
             logging.error("Failed to acquire lock. Another process may be holding the lock.")
 

@@ -1,6 +1,8 @@
 export APP := wrapbytes/deltalake-redis-lock
 export TAG := 0.0.1
 
+setup-environment: clean-environment install-environment install-linter
+
 .PHONY: clean-environment
 clean-environment:
 	rm -rf build dist .eggs *.egg-info
@@ -9,6 +11,11 @@ clean-environment:
 	find . -type d -name '__pycache__' -exec rm -rf {} +
 	find . -type d -name '*pytest_cache*' -exec rm -rf {} +
 	find . -type f -name "*.py[co]" -exec rm -rf {} +
+
+.PHONY: install-linter
+install-linter:
+	poetry run pre-commit clean
+	poetry run pre-commit install
 
 .PHONY: install-environment
 install-environment:
@@ -51,3 +58,7 @@ run-container-linter:
 .PHONY: build-container-image
 build-container-image:
 	docker build -t $(APP):$(TAG) -f tools/docker/Dockerfile .
+
+.PHONY: run-container-tests
+run-container-tests:
+	docker run $(APP):$(TAG) make --directory app/ test type=$(type)
