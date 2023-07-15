@@ -26,7 +26,7 @@ import logging
 import os
 import string
 from random import choices
-from multiprocessing import Pool, freeze_support
+from multiprocessing import Pool
 
 from pandas import DataFrame
 
@@ -68,8 +68,6 @@ def generate_random_string(length):
 
 
 if __name__ == '__main__':
-    freeze_support()
-
     random_string = generate_random_string(3)
     table_name = f"test_run_{random_string}"
 
@@ -86,7 +84,7 @@ seq 2 | xargs -I{} -P 2 poetry run python run.py
 
 ### Requirement
 
-* ^python3.4
+* ^python3.9
 * poetry 1.1.13
 * make (GNU Make 3.81)
 
