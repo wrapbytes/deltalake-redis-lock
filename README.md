@@ -115,6 +115,5 @@ make build-container-image DOCKER_BUILD="buildx build --platform linux/amd64" CO
 ```
 
 ```bash
-make get-container-info-environment
 make run-container-tests type=unit
 ```
