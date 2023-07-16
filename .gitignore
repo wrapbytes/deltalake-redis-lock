@@ -160,6 +160,7 @@ cython_debug/
 #.idea/
 
 tests/unit/*table
+*table
 
 .idea
 .DS_Store
