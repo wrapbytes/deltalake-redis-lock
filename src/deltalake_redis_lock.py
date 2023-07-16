@@ -12,7 +12,7 @@ from pyarrow.lib import RecordBatchReader
 from redis.exceptions import LockError
 from redis.lock import Lock
 
-from src.global_lock import REDIS_LOCK
+from global_lock import REDIS_LOCK
 
 
 def write_redis_lock_deltalake(

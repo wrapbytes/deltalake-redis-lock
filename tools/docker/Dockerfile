@@ -1,6 +1,6 @@
 FROM python:3.9-slim-bullseye
 
-COPY src /app/src/
+COPY src /app/
 COPY tests /app/tests/
 COPY .git /app/.git/
 COPY [".isort.cfg", ".pre-commit-config.yaml", "Makefile", "poetry.lock", "pyproject.toml", "README.md", "/app/"]
