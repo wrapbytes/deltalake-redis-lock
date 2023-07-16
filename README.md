@@ -30,8 +30,7 @@ from multiprocessing import Pool
 
 from pandas import DataFrame
 
-from src.delta_rs import write_redis_lock_deltalake
-
+from deltalake_redis_lock import write_redis_lock_deltalake
 
 def fake_worker(args):
     df, table_name = args
