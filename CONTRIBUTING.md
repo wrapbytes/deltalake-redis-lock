@@ -26,7 +26,7 @@ If you encounter any bugs, issues, or have suggestions for improvement, please c
 
 ## Code of Conduct
 
-We adhere to a code of conduct to ensure a respectful and inclusive environment for all contributors. By participating in this project, you are expected to follow the code of conduct outlined in the [CODE_OF_CONDUCT.md]() file.
+We adhere to a code of conduct to ensure a respectful and inclusive environment for all contributors. By participating in this project, you are expected to follow the code of conduct outlined in the [CODE_OF_CONDUCT.md](https://github.com/wrapbytes/deltalake-redis-lock/blob/main/CODE_OF_CONDUCT.md) file.
 
 ## License
 
