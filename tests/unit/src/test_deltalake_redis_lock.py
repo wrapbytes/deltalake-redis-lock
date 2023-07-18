@@ -1,15 +1,16 @@
 import os
 import random
+import shutil
 import string
 from typing import Generator
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
 import pytest
 from deltalake import DeltaTable
 from redis.lock import Lock
 
-from src.deltalake_redis_lock import write_redis_lock_deltalake
+from src.deltalake_redis_lock import optimize_redis_lock_deltalake, write_redis_lock_deltalake
 from src.redis_lock_object_store import RedisLockingObjectStore
 
 REDIS_LOCK_PATH = "src.deltalake_redis_lock.REDIS_LOCK"
@@ -58,8 +59,14 @@ def mock_redis_lock() -> Generator[MagicMock, None, None]:
         yield mock_locking_object_store
 
 
+def count_files_in_directory(directory: str) -> int:
+    return sum(
+        1 for entry in os.listdir(directory) if os.path.isfile(os.path.join(directory, entry))
+    )
+
+
 @pytest.mark.parametrize("lock_table_name", ["test_table"])
-def test_write_redis_lock_deltalake(mock_data, mock_redis_lock, lock_table_name):
+def test_write_redis_lock_deltalake_with_optimize(mock_data, mock_redis_lock, lock_table_name):
     table_path = f"{os.getcwd()}/{lock_table_name}"
     write_redis_lock_deltalake(
         mode="overwrite",
@@ -68,29 +75,76 @@ def test_write_redis_lock_deltalake(mock_data, mock_redis_lock, lock_table_name)
         data=mock_data,
     )
 
-    assert mock_redis_lock.acquire_delta_lock.call_args_list == [
-        call(lock_table_name=lock_table_name)
-    ]
-
-    assert mock_redis_lock.acquire_delta_lock.call_count == 1
-
-    assert mock_redis_lock.release_delta_lock.call_args_list == [
-        call(acquired_lock=mock_redis_lock.acquire_delta_lock.return_value)
-    ]
-
-    assert mock_redis_lock.release_delta_lock.call_count == 1
-
-    delta_table = DeltaTable(
-        table_uri=table_path,
+    mock_redis_lock.acquire_delta_lock.assert_called_once_with(lock_table_name=lock_table_name)
+    mock_redis_lock.release_delta_lock.assert_called_once_with(
+        acquired_lock=mock_redis_lock.acquire_delta_lock.return_value
     )
+
+    write_redis_lock_deltalake(
+        mode="append",
+        lock_table_name=lock_table_name,
+        table_or_uri=table_path,
+        data=mock_data,
+    )
+
+    assert mock_redis_lock.acquire_delta_lock.call_count == 2
+    assert mock_redis_lock.release_delta_lock.call_count == 2
+
+    delta_table = DeltaTable(table_uri=table_path)
+    table = delta_table.to_pyarrow_table()
+    union_mock_data = pa.concat_tables([mock_data, mock_data])
+    assert table.equals(union_mock_data)
+    assert len(delta_table.files()) == 2
+
+    optimize_redis_lock_deltalake(
+        table_or_uri=table_path,
+        lock_table_name=lock_table_name,
+        retention_hours=1,
+        dry_run=False,
+        enforce_retention_duration=False,
+    )
+
+    delta_table = DeltaTable(table_uri=table_path)
+    # Delta
+    # --------
+    # 1 overwrite
+    # 1 append
+    # 1 optimize
+    # --------
+    # tot: 1 file for delta table
+    assert len(delta_table.files()) == 1
+
+    # Physical
+    # --------
+    # 1 overwrite
+    # 1 append
+    # 1 optimize
+    # --------
+    # tot: 3 files physically still in storage
+    assert count_files_in_directory(table_path) == 3
+
+    optimize_redis_lock_deltalake(
+        table_or_uri=table_path,
+        lock_table_name=lock_table_name,
+        retention_hours=0,
+        dry_run=False,
+        enforce_retention_duration=False,
+    )
+    delta_table = DeltaTable(table_uri=table_path)
+
+    ###
+    # 1 overwrite
+    # 1 append
+    # 1 optimize
+    #
+    # vacuum (remove overwrite, and append, keep optimized of both)
+    #
+    # tot: 1 file in storage
+    ###
+    assert count_files_in_directory(table_path) == 1
 
     table = delta_table.to_pyarrow_table()
+    union_mock_data = pa.concat_tables([mock_data, mock_data])
+    assert table.equals(union_mock_data)
 
-    assert len(table.schema.names) == len(mock_data.schema.names)
-    assert table.equals(mock_data)
-
-    delta_table.vacuum(
-        retention_hours=0,
-        enforce_retention_duration=False,
-        dry_run=False,
-    )
+    shutil.rmtree(table_path)
