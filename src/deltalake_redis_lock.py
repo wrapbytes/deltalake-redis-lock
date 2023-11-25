@@ -1,6 +1,17 @@
 import logging
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import pandas as pd
 import pyarrow as pa
@@ -26,7 +37,6 @@ def optimize_redis_lock_deltalake(
     retention_hours: Optional[int] = None,
     dry_run: bool = True,
     enforce_retention_duration: bool = True,
-    max_concurrent_requests: int = 10,
 ) -> None:
     """
     Optimize a Delta table with Redis lock.
@@ -41,7 +51,6 @@ def optimize_redis_lock_deltalake(
         retention_hours: The number of hours to retain old versions of the table.
         dry_run: Whether to perform a dry run of the optimization.
         enforce_retention_duration: Whether to enforce the retention duration.
-        max_concurrent_requests: The maximum number of concurrent requests.
 
     """
 
@@ -55,10 +64,9 @@ def optimize_redis_lock_deltalake(
             retention_hours=retention_hours,
             dry_run=dry_run,
             enforce_retention_duration=enforce_retention_duration,
-            max_concurrent_requests=max_concurrent_requests,
         )
 
-    logging.info(f"Perform Optimize Delta")
+    logging.info(f"Perform Optimize Delta lock_table_name: {lock_table_name}")
     _execute_with_redis_lock(lock_table_name, optimize_delta)
 
 
@@ -137,7 +145,7 @@ def write_redis_lock_deltalake(
             partition_filters=partition_filters,
         )
 
-    logging.info(f"Perform Delta Write")
+    logging.info(f"Perform Delta Write: {lock_table_name}")
     _execute_with_redis_lock(lock_table_name, write_delta)
 
 
@@ -164,20 +172,23 @@ def _execute_with_redis_lock(
 
     """
     try:
-        logging.info(f"Try to Acquire Redis Lock...")
+        logging.info(f"Try to Acquire Redis Lock...{lock_table_name}")
         acquired_lock: Optional[Lock] = REDIS_LOCK.acquire_delta_lock(
             lock_table_name=lock_table_name
         )
-        logging.info(f"Acquired Redis Lock...")
 
         if isinstance(acquired_lock, Lock):
+            logging.info(f"Acquired Redis Lock...{lock_table_name}")
+
             try:
-                logging.info("Lock acquired. Executing function...")
+                logging.info("Executing function...")
                 return function(*args, **kwargs)
             finally:
                 REDIS_LOCK.release_delta_lock(acquired_lock=acquired_lock)
         else:
-            logging.error("Failed to acquire lock. Another process may be holding the lock.")
+            logging.error(
+                "Failed to acquire lock. Another process may be holding the lock."
+            )
 
     except (Exception, DeltaError, LockError) as error:
         logging.error(error)
@@ -193,7 +204,6 @@ def _optimize_delta_table(
     retention_hours: Optional[int] = None,
     dry_run: bool = True,
     enforce_retention_duration: bool = True,
-    max_concurrent_requests: int = 10,
 ) -> None:
     """
     Optimize a Delta table with Redis lock.
@@ -207,7 +217,6 @@ def _optimize_delta_table(
         retention_hours: The number of hours to retain old versions of the table.
         dry_run: Whether to perform a dry run of the optimization.
         enforce_retention_duration: Whether to enforce the retention duration.
-        max_concurrent_requests: The maximum number of concurrent requests.
 
     """
     delta_table = DeltaTable(table_uri=table_or_uri, storage_options=storage_options)
@@ -220,5 +229,4 @@ def _optimize_delta_table(
         retention_hours=retention_hours,
         dry_run=dry_run,
         enforce_retention_duration=enforce_retention_duration,
-        max_concurrent_requests=max_concurrent_requests,
     )

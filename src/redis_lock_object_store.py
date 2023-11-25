@@ -42,11 +42,12 @@ class RedisLockingObjectStore:
         lock_acquired = lock_obj.acquire(blocking=blocking)
 
         if lock_acquired:
-            logging.info(f"Acquired lock, blocking: {blocking}")
+            logging.info(
+                f"Acquired lock lock_table_name: {lock_table_name}, blocking: {blocking}"
+            )
             return lock_obj
         else:
-
-            logging.info(f"Did Not Acquire Lock")
+            logging.info(f"Did Not Acquire Lock lock_table_name: {lock_table_name}")
             return None
 
 
@@ -80,10 +81,14 @@ def get_store() -> RedisLockingObjectStore:
     """
     try:
         host = os.environ["REDIS_HOST"]
-        port = int(os.getenv("REDIS_PORT", 6739))
+        port = int(os.getenv("REDIS_PORT", 6379))
         db = int(os.getenv("REDIS_DB", 0))
 
-        redis_client = _get_strict_redis(host=host, port=port, db=db)
+        redis_client = _get_strict_redis(
+            host=host,
+            port=port,
+            db=db,
+        )
         return RedisLockingObjectStore(redis_client=redis_client)
 
     except (KeyError, RedisError) as redis_error:
