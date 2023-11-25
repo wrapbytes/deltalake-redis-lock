@@ -18,6 +18,6 @@ RUN apt-get update && \
     apt-get -y install --no-install-recommends wget && \
     rm -rf /var/lib/apt/lists/* && \
     python -m pip install --no-cache-dir pip=="${PIP_VERSION}" && \
-    python -m pip install --no-cache-dir setuptools=="${SETUPTOOLS_VERSION}"
+    python -m pip install --no-cache-dir setuptools=="${SETUPTOOLS_VERSION}" && \
     pip install --no-cache-dir poetry=="${POETRY_VERSION}" && \
     make --directory /app/ install-environment
