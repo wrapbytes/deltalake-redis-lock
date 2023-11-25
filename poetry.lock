@@ -353,7 +353,7 @@ test = ["covdefaults (>=2.3)", "coverage-enable-subprocess (>=1)", "coverage (>=
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "fa6b6cafec265f49a88d7ada149caab3a8514143a614d0002b29f72e7e3cfd77"
+content-hash = "2e719e4ba83f876757b3200dfa55db815696a576d96f59d4b20b71ca7bbb3ba7"
 
 [metadata.files]
 async-timeout = []
