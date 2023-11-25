@@ -10,7 +10,10 @@ import pytest
 from deltalake import DeltaTable
 from redis.lock import Lock
 
-from src.deltalake_redis_lock import optimize_redis_lock_deltalake, write_redis_lock_deltalake
+from src.deltalake_redis_lock import (
+    optimize_redis_lock_deltalake,
+    write_redis_lock_deltalake,
+)
 from src.redis_lock_object_store import RedisLockingObjectStore
 
 REDIS_LOCK_PATH = "src.deltalake_redis_lock.REDIS_LOCK"
@@ -53,7 +56,9 @@ def mock_data() -> pa.Table:
 
 @pytest.fixture(scope="function")
 def mock_redis_lock() -> Generator[MagicMock, None, None]:
-    with patch(REDIS_LOCK_PATH, spec=RedisLockingObjectStore) as mock_locking_object_store:
+    with patch(
+        REDIS_LOCK_PATH, spec=RedisLockingObjectStore
+    ) as mock_locking_object_store:
         mock_locking_object_store.acquire_delta_lock.return_value = MagicMock(spec=Lock)
 
         yield mock_locking_object_store
@@ -61,12 +66,16 @@ def mock_redis_lock() -> Generator[MagicMock, None, None]:
 
 def count_files_in_directory(directory: str) -> int:
     return sum(
-        1 for entry in os.listdir(directory) if os.path.isfile(os.path.join(directory, entry))
+        1
+        for entry in os.listdir(directory)
+        if os.path.isfile(os.path.join(directory, entry))
     )
 
 
 @pytest.mark.parametrize("lock_table_name", ["test_table"])
-def test_write_redis_lock_deltalake_with_optimize(mock_data, mock_redis_lock, lock_table_name):
+def test_write_redis_lock_deltalake_with_optimize(
+    mock_data, mock_redis_lock, lock_table_name
+):
     table_path = f"{os.getcwd()}/{lock_table_name}"
     write_redis_lock_deltalake(
         mode="overwrite",
@@ -75,7 +84,9 @@ def test_write_redis_lock_deltalake_with_optimize(mock_data, mock_redis_lock, lo
         data=mock_data,
     )
 
-    mock_redis_lock.acquire_delta_lock.assert_called_once_with(lock_table_name=lock_table_name)
+    mock_redis_lock.acquire_delta_lock.assert_called_once_with(
+        lock_table_name=lock_table_name
+    )
     mock_redis_lock.release_delta_lock.assert_called_once_with(
         acquired_lock=mock_redis_lock.acquire_delta_lock.return_value
     )
