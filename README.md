@@ -15,8 +15,8 @@ to mimic this behaviour.
 Make sure to set these `envs` before executing code.
 ```bash
 REDIS_HOST=<host>
-REDIS_PORT=<port>  # default 6739
-REDIS_DB=<0>  # default 0
+REDIS_PORT=<port>
+REDIS_DB=<0>
 ```
 
 ### Concurrent Write Example
